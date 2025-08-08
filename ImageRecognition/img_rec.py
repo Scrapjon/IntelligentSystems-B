@@ -1,0 +1,3 @@
+class ImageRecognizer():
+    pass
+

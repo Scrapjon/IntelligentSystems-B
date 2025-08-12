@@ -1,6 +1,11 @@
 import ImageRecognition
 from ImageRecognition.image_recognizer import ImageRecognizer
+from pathlib import Path
 
-imgrec = ImageRecognizer()
+EPOCHS = 5
+MODEL_PATH = Path("ImageRecognition", "model", "model.pth")
 
-imgrec.start_training(5)
+imgrec = ImageRecognizer(model_path=MODEL_PATH)
+
+imgrec.training_loop(EPOCHS)
+imgrec.save_model()

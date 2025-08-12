@@ -8,9 +8,15 @@ from pathlib import Path
 from os import getcwd
 
 DATA_FOLDER = Path("ImageRecognition","data")
+MODEL_FOLDER = Path("ImageRecognition", "model")
 
 class ImageRecognizer():
-    def __init__(self, batch_size = 64):
+    def __init__(self, batch_size = 64, model_path = None):
+
+        """
+        Initializes the ImageRecognizer object. Passing in model_path loads the model from a file
+        """
+
         print("Initializing Dataloaders")
         self.__initialize_dataloaders__(batch_size)
 
@@ -21,7 +27,7 @@ class ImageRecognizer():
             break
         
         print("Initializing Neural Network")
-        self.__initialize_neural_network__()
+        self.__initialize_neural_network__(model_path=model_path)
         print("Initialized Neural Network")
 
         self.loss_fn = nn.CrossEntropyLoss()
@@ -36,10 +42,13 @@ class ImageRecognizer():
         self.train_dataloader = DataLoader(self.training_data, batch_size=self.batch_size)
         self.test_dataloader = DataLoader(self.test_data, batch_size=self.batch_size)
     
-    def __initialize_neural_network__(self):
+    def __initialize_neural_network__(self, model_path:Path = None):
         self.device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
         print(f"Using {self.device} device")
         self.model = NeuralNetwork().to(self.device)
+        if model_path.exists():
+            print(f"Loading model at path: {model_path}")
+            self.model.load_state_dict(torch.load(model_path, weights_only=True))
         print(self.model)
     
     def train(self):
@@ -85,13 +94,22 @@ class ImageRecognizer():
         test_loss /= num_batches
         correct /= size
         print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+        self.model = model # just in case i forgot to reassign
     
-    def start_training(self,epochs):
+    def training_loop(self,epochs):
         for t in range(epochs):
             print(f"Epoch {t+1}\n-------------------------------")
             self.train()
             self.test()
         print("Done!")
+    
+    def save_model(self):
+        save_path = Path(MODEL_FOLDER, "model.pth")
+        torch.save(self.model.state_dict(), save_path)
+        print(f"Saved model state to {save_path}")
+
+
+
             
 
     

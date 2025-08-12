@@ -46,9 +46,10 @@ class ImageRecognizer():
         self.device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
         print(f"Using {self.device} device")
         self.model = NeuralNetwork().to(self.device)
-        if model_path.exists():
-            print(f"Loading model at path: {model_path}")
-            self.model.load_state_dict(torch.load(model_path, weights_only=True))
+        if model_path:
+            if model_path.exists():
+                print(f"Loading model at path: {model_path}")
+                self.model.load_state_dict(torch.load(model_path, weights_only=True))
         print(self.model)
     
     def train(self):
@@ -107,6 +108,16 @@ class ImageRecognizer():
         save_path = Path(MODEL_FOLDER, "model.pth")
         torch.save(self.model.state_dict(), save_path)
         print(f"Saved model state to {save_path}")
+
+    def evaluate(self):
+        classes = self.test_data.classes
+        self.model.eval()
+        x, y = self.test_data[0][0], self.test_data[0][1]
+        with torch.no_grad():
+            x = x.to(self.device)
+            pred = self.model(x)
+            predicted, actual = classes[pred[0].argmax(0)], classes[y]
+            print(f'Predicted: "{predicted}", Actual: "{actual}"')
 
 
 

@@ -10,10 +10,10 @@ CLASSES = ["",""]
 
 
 ### Training and save ###
-#imgrec_train_demo = ImageRecognizer()
+imgrec_train_demo = ImageRecognizer()
 
-#imgrec_train_demo.training_loop(EPOCHS)
-#imgrec_train_demo.save_model()
+imgrec_train_demo.training_loop(EPOCHS)
+imgrec_train_demo.save_model()
 
 ### Loading and Evaluation ###
 imgrec_test_demo = ImageRecognizer(model_path=MODEL_PATH)

@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
-from torchvision.transforms import ToTensor
+from torchvision.transforms import ToTensor, Compose, Normalize
 from pathlib import Path
 from os import getcwd
 
@@ -37,8 +37,12 @@ class ImageRecognizer():
 
     def __initialize_dataloaders__(self,batch_size):
         self.batch_size = batch_size
-        self.training_data = MNIST(DATA_FOLDER, train=True, download=True, transform=ToTensor())
-        self.test_data = MNIST(DATA_FOLDER, train=False, download=True, transform=ToTensor())
+        self.transform=Compose([
+        ToTensor(),
+        Normalize((0.1307,), (0.3081,))
+        ])
+        self.training_data = MNIST(DATA_FOLDER, train=True, download=True, transform=self.transform)
+        self.test_data = MNIST(DATA_FOLDER, train=False, download=True, transform=self.transform)
         self.train_dataloader = DataLoader(self.training_data, batch_size=self.batch_size)
         self.test_dataloader = DataLoader(self.test_data, batch_size=self.batch_size)
     
@@ -110,14 +114,29 @@ class ImageRecognizer():
         print(f"Saved model state to {save_path}")
 
     def evaluate(self):
+        import random
+        index = random.randint(0,len(self.test_data)-1)
         classes = self.test_data.classes
         self.model.eval()
-        x, y = self.test_data[0][0], self.test_data[0][1]
+        x, y = self.test_data[index][0], self.test_data[index][1]
+        print(self.test_data)
         with torch.no_grad():
             x = x.to(self.device)
             pred = self.model(x)
             predicted, actual = classes[pred[0].argmax(0)], classes[y]
             print(f'Predicted: "{predicted}", Actual: "{actual}"')
+    def predict(self, input):
+        """
+        TODO: add in logic to take in images rather than just encoded data.
+        """
+        classes = self.test_data.classes
+        self.model.eval()
+        with torch.no_grad():
+            x = input.to(self.device)
+            pred = self.model(x)
+            predicted  = classes[pred[0].argmax(0)]
+            return predicted
+
 
 
 

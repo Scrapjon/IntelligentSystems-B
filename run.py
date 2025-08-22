@@ -7,7 +7,7 @@ EVAL_LOOPS = 10000
 MODEL_PATH = Path("ImageRecognition", "model", "model.pth")
 CLASSES = ["",""]
 
-TRAINING_MODE = False
+TRAINING_MODE = True
 
 
 if TRAINING_MODE:

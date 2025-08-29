@@ -5,10 +5,12 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, Compose, Normalize
 from pathlib import Path
-from os import getcwd
+from os import getcwd, makedirs
 
 DATA_FOLDER = Path("ImageRecognition","data")
 MODEL_FOLDER = Path("ImageRecognition", "model")
+
+
 
 class ImageRecognizer():
     def __init__(self, batch_size = 64, model_path = None):
@@ -47,6 +49,9 @@ class ImageRecognizer():
         self.test_dataloader = DataLoader(self.test_data, batch_size=self.batch_size)
     
     def __initialize_neural_network__(self, model_path:Path = None):
+
+        makedirs(MODEL_FOLDER, exist_ok=True)
+
         self.device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
         print(f"Using {self.device} device")
         self.model = NeuralNetwork().to(self.device)

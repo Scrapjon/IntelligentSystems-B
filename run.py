@@ -2,7 +2,7 @@ import ImageRecognition
 from ImageRecognition.image_recognizer import ImageRecognizer
 from pathlib import Path
 
-EPOCHS = 1
+EPOCHS = 5
 EVAL_LOOPS = 10000
 MODEL_PATH = Path("ImageRecognition", "model", "model.pth")
 CLASSES = ["",""]

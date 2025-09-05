@@ -185,3 +185,4 @@ ImageRecognition/data/
 ImageRecognition/model/
 
 .vscode/
+.idea/

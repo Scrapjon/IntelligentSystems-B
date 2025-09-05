@@ -2,6 +2,7 @@ import ImageRecognition
 from ImageRecognition.image_recognizer import ImageRecognizer
 from pathlib import Path
 
+
 EPOCHS = 1
 EVAL_LOOPS = 10000
 MODEL_PATH = Path("ImageRecognition", "model", "model.pth")
@@ -25,7 +26,10 @@ try:
     classes = imgrec_test_demo.test_data.classes
     for i in range(EVAL_LOOPS):
         pred = imgrec_test_demo.predict(imgrec_test_demo.test_data[i-1][0])
+        actual = classes[imgrec_test_demo.test_data[i-1][1]]
+        print(f"prediction: {pred}, actual: {actual}")
         if pred == classes[imgrec_test_demo.test_data[i-1][1]]:
+            
             correct.append(pred)
     accuracy = len(correct)/EVAL_LOOPS
     print(f"Accuracy: {accuracy*100}%\nScore: {len(correct)}/{EVAL_LOOPS}")

@@ -124,6 +124,12 @@ class ImageRecognizer():
         classes = self.test_data.classes
         self.model.eval()
         x, y = self.test_data[index][0], self.test_data[index][1]
+        print(type(x))
+        import time
+        for i in range(len(torch.detach_copy(x))):
+            time.sleep(0.5)
+            print(torch.detach_copy(x)[i])
+            print(i)
         print(self.test_data)
         with torch.no_grad():
             x = x.to(self.device)
@@ -141,16 +147,8 @@ class ImageRecognizer():
             pred = self.model(x)
             predicted  = classes[pred[0].argmax(0)]
             return predicted
-
-
-
-
-            
-
-    
-       
         
-    
 
 if __name__ == "__main__":
     imgrec = ImageRecognizer()
+    imgrec.evaluate()

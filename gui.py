@@ -7,7 +7,7 @@ import threading, asyncio
 import ImageRecognition
 from pathlib import Path
 from ImageRecognition.image_recognizer import ImageRecognizer
-
+import torch
 
 MODEL_PATH = Path(__file__, "ImageRecognition", "model", "model.pth")
 
@@ -142,11 +142,16 @@ class DigitDrawingApp:
         def prediction_sequence(self):
             drawing = self.process_drawing()
             normalised = drawing["normalised"]
+            normalised =  np.array([normalised])
+            normalised = torch.as_tensor(data=normalised,dtype=torch.float,device=self.image_rec.device)
+            
             pred = self.image_rec.predict(normalised)
+
             return pred
-        prediction_thread = threading.Thread(target=prediction_sequence, args=self)
-        prediction_thread.run()
+        prediction_thread = threading.Thread(target=prediction_sequence, args=[self])
+        prediction_thread.start()
         prediction = prediction_thread.join()
+        
         return prediction
         
 
@@ -156,4 +161,5 @@ class DigitDrawingApp:
 if __name__ == "__main__":
     root = tk.Tk()
     app = DigitDrawingApp(root, MODEL_PATH)
+    app.image_rec.evaluate()
     root.mainloop()

@@ -7,6 +7,7 @@ import threading, asyncio
 import ImageRecognition
 from pathlib import Path
 from ImageRecognition.image_recognizer import ImageRecognizer
+from ImageRecognition.segmentation import (segment_contours, segment_connected, segment_projection)
 import torch
 
 MODEL_PATH = Path(__file__, "ImageRecognition", "model", "model.pth")
@@ -44,20 +45,30 @@ class DigitDrawingApp:
         self.train_entry.grid(row=1,column=4, pady=10)
 
 
-
-        # Panel for processed images
+        # Panel for processed images (Segmented images included)
         self.processed_frame = tk.Frame(root)
-        self.processed_frame.grid(row=2, column=0, columnspan=2, pady=10)
+        self.processed_frame.grid(row=2, column=0, columnspan=5, pady=10)
 
         # Labels for showing processed images
-        self.gray_label = tk.Label(self.processed_frame)
-        self.gray_label.pack(side='left', padx=5)
+        self.gray_label = tk.Label(self.processed_frame, text="Gray")
+        self.gray_label.grid(row=0, column=0, padx=5, pady=5)
 
-        self.binary_label = tk.Label(self.processed_frame)
-        self.binary_label.pack(side='left', padx=5)
+        self.binary_label = tk.Label(self.processed_frame, text="Binary")
+        self.binary_label.grid(row=0, column=1, padx=5, pady=5)
 
-        self.edge_label = tk.Label(self.processed_frame)
-        self.edge_label.pack(side='left', padx=5)
+        self.edge_label = tk.Label(self.processed_frame, text="Edges")
+        self.edge_label.grid(row=0, column=2, padx=5, pady=5)
+
+
+        # Labels for showing the segmented images
+        self.contour_label = tk.Label(self.processed_frame, text="Contours")
+        self.contour_label.grid(row=0, column=3, padx=5, pady=5)
+
+        self.connected_label = tk.Label(self.processed_frame, text="Connected")
+        self.connected_label.grid(row=0, column=4, padx=5, pady=5)
+
+        self.projection_label = tk.Label(self.processed_frame, text="Projection")
+        self.projection_label.grid(row=0, column=5, padx=5, pady=5)
 
         # For drawing
         self.old_x = None
@@ -100,6 +111,9 @@ class DigitDrawingApp:
         self.gray_label.config(image='')
         self.binary_label.config(image='')
         self.edge_label.config(image='')
+        self.connected_label.config(image='')
+        self.contour_label.config(image='')
+        self.projection_label.config(image='')
 
     def process_drawing(self):
         # Convert PIL image to grayscale
@@ -112,10 +126,10 @@ class DigitDrawingApp:
         img_np = np.array(gray)
         
         # Negative
-        img_np = img_np.max()-img_np
+        #img_np = img_np.max() - img_np
 
         # Normalise
-        normalised_img_np = (img_np-img_np.min())/(img_np.max()-img_np.min())
+        normalised_img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min())
 
         # Binarization
         _, binary = cv2.threshold(img_np, 128, 255, cv2.THRESH_BINARY)
@@ -131,12 +145,62 @@ class DigitDrawingApp:
         self.edge_label.config(image=edges_tk)
         self.edge_label.image = edges_tk
 
+        # --- Segmentation techniques ---
+        contour_digits = segment_contours(img_np)
+        connected_digits = segment_connected(img_np)
+        projection_digits = segment_projection(img_np)
+
+        # Helper to display multiple segmented digits beneath a label
+        def display_segmented_digits(digit_list, parent_frame, row, label_text):
+            # Clear previous widgets in that row except the first column (label)
+            for widget in parent_frame.grid_slaves(row=row):
+                widget.grid_forget()
+
+            # Place label at column 0
+            label = tk.Label(parent_frame, text=label_text)
+            label.grid(row=row, column=0, padx=5, pady=5)
+
+            # Place images starting at column 1
+            for i, digit_arr in enumerate(digit_list):
+                digit_img = Image.fromarray(digit_arr)
+                digit_tk = ImageTk.PhotoImage(digit_img.resize((28, 28)))
+                lbl = tk.Label(parent_frame, image=digit_tk)
+                lbl.image = digit_tk  # keep reference
+                lbl.grid(row=row, column=i+1, padx=2, pady=2)
+
+        # Display all segmented digits in rows beneath the main previews
+        display_segmented_digits(contour_digits, self.processed_frame, row=1, label_text="Contours")
+        display_segmented_digits(connected_digits, self.processed_frame, row=2, label_text="Connected")
+        display_segmented_digits(projection_digits, self.processed_frame, row=3, label_text="Projection")
+
+        # Optionally keep the first digit in the main preview
+        if contour_digits:
+            contour_img = Image.fromarray(contour_digits[0])
+            contour_tk = ImageTk.PhotoImage(contour_img.resize((100,100)))
+            self.contour_label.config(image=contour_tk)
+            self.contour_label.image = contour_tk
+
+        if connected_digits:
+            connected_img = Image.fromarray(connected_digits[0])
+            connected_tk = ImageTk.PhotoImage(connected_img.resize((100,100)))
+            self.connected_label.config(image=connected_tk)
+            self.connected_label.image = connected_tk
+
+        if projection_digits:
+            projection_img = Image.fromarray(projection_digits[0])
+            projection_tk = ImageTk.PhotoImage(projection_img.resize((100,100)))
+            self.projection_label.config(image=projection_tk)
+            self.projection_label.image = projection_tk
+
         return {
             "grey": gray,
             "img": img_np,
             "normalised": normalised_img_np,
-            "edges": edges
+            "edges": edges,
+            "binary": binary
         }
+
+
 
     def predict_drawing(self):
         def prediction_sequence(self):

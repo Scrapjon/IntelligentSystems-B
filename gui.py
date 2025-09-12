@@ -150,6 +150,12 @@ class DigitDrawingApp:
         connected_digits = segment_connected(img_np)
         projection_digits = segment_projection(img_np)
 
+        print(f"""
+Contour: {len(contour_digits)}
+Connected: {len(connected_digits)}
+Projection: {len(projection_digits)}
+""")
+
         # Helper to display multiple segmented digits beneath a label
         def display_segmented_digits(digit_list, parent_frame, row, label_text):
             # Clear previous widgets in that row except the first column (label)

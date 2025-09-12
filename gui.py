@@ -61,14 +61,14 @@ class DigitDrawingApp:
 
 
         # Labels for showing the segmented images
-        self.contour_label = tk.Label(self.processed_frame, text="Contours")
+        """self.contour_label = tk.Label(self.processed_frame, text="Contours")
         self.contour_label.grid(row=0, column=3, padx=5, pady=5)
 
         self.connected_label = tk.Label(self.processed_frame, text="Connected")
         self.connected_label.grid(row=0, column=4, padx=5, pady=5)
 
         self.projection_label = tk.Label(self.processed_frame, text="Projection")
-        self.projection_label.grid(row=0, column=5, padx=5, pady=5)
+        self.projection_label.grid(row=0, column=5, padx=5, pady=5)"""
 
         # For drawing
         self.old_x = None
@@ -153,8 +153,7 @@ class DigitDrawingApp:
         print(f"""
 Contour: {len(contour_digits)}
 Connected: {len(connected_digits)}
-Projection: {len(projection_digits)}
-""")
+Projection: {len(projection_digits)}""")
 
         # Helper to display multiple segmented digits beneath a label
         def display_segmented_digits(digit_list, parent_frame, row, label_text):
@@ -179,8 +178,8 @@ Projection: {len(projection_digits)}
         display_segmented_digits(connected_digits, self.processed_frame, row=2, label_text="Connected")
         display_segmented_digits(projection_digits, self.processed_frame, row=3, label_text="Projection")
 
-        # Optionally keep the first digit in the main preview
-        if contour_digits:
+
+        """if contour_digits:
             contour_img = Image.fromarray(contour_digits[0])
             contour_tk = ImageTk.PhotoImage(contour_img.resize((100,100)))
             self.contour_label.config(image=contour_tk)
@@ -196,7 +195,7 @@ Projection: {len(projection_digits)}
             projection_img = Image.fromarray(projection_digits[0])
             projection_tk = ImageTk.PhotoImage(projection_img.resize((100,100)))
             self.projection_label.config(image=projection_tk)
-            self.projection_label.image = projection_tk
+            self.projection_label.image = projection_tk"""
 
         return {
             "grey": gray,

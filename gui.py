@@ -36,6 +36,10 @@ class DigitDrawingApp:
         self.predict_btn = ttk.Button(root, text="Predict", command=self.predict_drawing)
         self.predict_btn.grid(row=1, column=2, pady=10)
 
+        self.predict_result = tk.StringVar(root, value="Prediction: None")
+        self.predict_result_label = tk.Label(root, textvariable=self.predict_result)
+        self.predict_result_label.grid(row=3, column=2, pady=10)
+
         self.train_btn = ttk.Button(root, text="Train", command=self.train)
         self.train_btn.grid(row=1,column=3, pady=10)
 
@@ -111,7 +115,6 @@ class DigitDrawingApp:
         self.gray_label.config(image='')
         self.binary_label.config(image='')
         self.edge_label.config(image='')
-        self.connected_label.config(image='')
         self.contour_label.config(image='')
         self.projection_label.config(image='')
 
@@ -149,6 +152,11 @@ class DigitDrawingApp:
         contour_digits = segment_contours(img_np)
         connected_digits = segment_connected(img_np)
         projection_digits = segment_projection(img_np)
+
+        for digits in [contour_digits, connected_digits, projection_digits]:
+            for i,digit in enumerate(digits):
+                #digits[i] = (digit - digit.min()) / (digit.max() - digit.min())
+                pass
 
         print(f"""
 Contour: {len(contour_digits)}
@@ -202,26 +210,26 @@ Projection: {len(projection_digits)}""")
             "img": img_np,
             "normalised": normalised_img_np,
             "edges": edges,
-            "binary": binary
+            "binary": binary,
+            "contour_digits": contour_digits
         }
 
 
 
     def predict_drawing(self):
-        def prediction_sequence(self):
+        def prediction_sequence(self: DigitDrawingApp):
             drawing = self.process_drawing()
-            normalised = drawing["normalised"]
-            normalised =  np.array([normalised])
-            normalised = torch.as_tensor(data=normalised,dtype=torch.float,device=self.image_rec.device)
-            
-            pred = self.image_rec.predict(normalised)
+            normalised = drawing["contour_digits"]
+            preds = ""
+            for n in normalised:
+                n =  np.array([n])
+                n = torch.as_tensor(data=n,dtype=torch.float,device=self.image_rec.device)
 
-            return pred
+                preds += self.image_rec.predict(n) + " "
+            
+            self.predict_result.set(f"Prediction: {preds}")
         prediction_thread = threading.Thread(target=prediction_sequence, args=[self])
         prediction_thread.start()
-        prediction = prediction_thread.join()
-        
-        return prediction
         
 
 

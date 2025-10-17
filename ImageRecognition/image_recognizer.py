@@ -1,4 +1,6 @@
 from ImageRecognition.neural_network import NeuralNetwork
+from ImageRecognition.Ml_models import SupportVectorClassifier
+import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -13,11 +15,13 @@ MODEL_FOLDER = Path("ImageRecognition", "model")
 
 
 class ImageRecognizer():
-    def __init__(self, batch_size = 64, model_path = None):
+    def __init__(self, batch_size = 64, model_path = None, model_type='nn'):
 
         """
         Initializes the ImageRecognizer object. Passing in model_path loads the model from a file
+
         """
+        self.model_type = model_type
 
         print("Initializing Dataloaders")
         self.__initialize_dataloaders__(batch_size)
@@ -27,13 +31,25 @@ class ImageRecognizer():
             print(f"Shape of X [N, C, H, W]: {X.shape}")
             print(f"Shape of y: {y.shape} {y.dtype}")
             break
+
+        if self.model_type == 'nn':
+            print("Initializing Neural Network")
+            self.__initialize_neural_network__(model_path=model_path)
+            self.loss_fn = nn.CrossEntropyLoss()
+            self.optimizer = torch.optim.SGD(self.model.parameters(), lr=1e-3)
+            print("Initialized Neural Network")
+        elif self.model_type == 'svc':
+            self.__initialize_SVC()
+        else:
+            raise ValueError("Invalid model_type specified. Choose 'nn' or 'svc'.")
         
-        print("Initializing Neural Network")
+        #old version below
+        '''print("Initializing Neural Network")
         self.__initialize_neural_network__(model_path=model_path)
         print("Initialized Neural Network")
 
         self.loss_fn = nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=1e-3)
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=1e-3)'''
 
         
 
@@ -60,6 +76,37 @@ class ImageRecognizer():
                 print(f"Loading model at path: {model_path}")
                 self.model.load_state_dict(torch.load(model_path, weights_only=True))
         print(self.model)
+
+    def __initialize_SVC(self):
+        """
+        Prepares data, initializes, and trains the Support Vector Classifier.
+        """
+        print("Initializing SVC...")
+        
+        # 1. Extract data from the PyTorch datasets and reshape it for scikit-learn
+        # Training data
+        train_images = self.training_data.data.numpy()
+        train_labels = self.training_data.targets.numpy()
+        n_train_samples = len(train_images)
+        X_train = train_images.reshape((n_train_samples, -1)) # Flatten images to 784-dim vectors
+    
+        # Testing data (for evaluation)
+        test_images = self.test_data.data.numpy()
+        test_labels = self.test_data.targets.numpy()
+        n_test_samples = len(test_images)
+        X_test = test_images.reshape((n_test_samples, -1))
+
+        print(f"Data prepared for SVC: {n_train_samples} training samples, {n_test_samples} test samples.")
+
+        # 2. Initialize your SVC model from Ml_models.py
+        self.svc_model = SupportVectorClassifier()
+
+        # 3. Train the model
+        self.svc_model.train(X_train, train_labels)
+
+        # 4. (Optional) Evaluate the model immediately after training
+        self.svc_model.evaluate(X_test, test_labels)
+        print("SVC is ready.")
     
     def train(self):
 

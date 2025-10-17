@@ -1,4 +1,3 @@
-from ImageRecognition.models import NeuralNetwork, SupportVectorClassifier
 import numpy as np
 import torch
 from torch import nn
@@ -9,6 +8,12 @@ from pathlib import Path
 from os import getcwd, makedirs
 from enum import Enum
 
+if __name__ != "__main__":
+    from ImageRecognition.models import NeuralNetwork, SupportVectorClassifier
+else:
+    from models import NeuralNetwork, SupportVectorClassifier
+
+
 class ModelType(Enum):
     CNN = 0
     SVC = 1
@@ -17,7 +22,7 @@ class ModelType(Enum):
 DATA_FOLDER = Path("ImageRecognition","data")
 MODEL_FOLDER = Path("ImageRecognition", "model")
 
-class ImageRecogniser():
+class ImageRecognizer():
     def __init__(self, model_path = None, model_type = ModelType.CNN):
         self.model_type = model_type
 
@@ -212,4 +217,4 @@ class CNN():
 
 if __name__ == "__main__":
     imgrec = ImageRecognizer()
-    imgrec.evaluate()
+    #imgrec.evaluate()

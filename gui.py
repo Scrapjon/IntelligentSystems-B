@@ -235,7 +235,7 @@ Projection: {len(projection_digits)}""")
 def start_app() -> tuple[DigitDrawingApp, threading.Thread]:
     root = tk.Tk()
     app = DigitDrawingApp(root, MODEL_PATH)
-    app.image_rec.evaluate()
+    #app.image_rec.evaluate()
     main_loop = threading.Thread(target=root.mainloop())
     return app, main_loop
     

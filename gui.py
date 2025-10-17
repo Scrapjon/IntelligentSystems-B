@@ -232,11 +232,14 @@ Projection: {len(projection_digits)}""")
         prediction_thread.start()
         
 
-
-
-
-if __name__ == "__main__":
+def start_app() -> tuple[DigitDrawingApp, threading.Thread]:
     root = tk.Tk()
     app = DigitDrawingApp(root, MODEL_PATH)
     app.image_rec.evaluate()
-    root.mainloop()
+    main_loop = threading.Thread(target=root.mainloop())
+    return app, main_loop
+    
+    
+
+if __name__ == "__main__":
+    start_app()

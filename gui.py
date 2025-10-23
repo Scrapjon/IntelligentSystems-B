@@ -6,7 +6,7 @@ import cv2
 import threading, asyncio
 import ImageRecognition
 from pathlib import Path
-from ImageRecognition.image_recognizer import ImageRecognizer
+from ImageRecognition.image_recognizer import ImageRecognizer, ModelType
 from ImageRecognition.segmentation import (segment_contours, segment_connected, segment_projection)
 import torch
 
@@ -85,7 +85,10 @@ class DigitDrawingApp:
         self.image = Image.new("RGB", (self.canvas_width, self.canvas_height), 'white')
         self.draw_image = ImageDraw.Draw(self.image)
 
-        self.image_rec = ImageRecognizer(64, model_path)
+        
+        #self.image_rec = ImageRecognizer(64, model_path) 
+        #commented this out to use MLP model ^
+        self.image_rec = ImageRecognizer(batch_size=64, model_path=model_path, model_type=ModelType.MLP)
 
     def train(self):
         epochs = self.epochs.get() if self.epochs.get() > 0 else 1

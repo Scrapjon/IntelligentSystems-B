@@ -85,4 +85,22 @@ class SupportVectorClassifier:
         print(f"SVC Accuracy: {accuracy * 100:.2f}%")
 
 
-    
+#MLP model
+class MLPnn(nn.Module):
+    def __init__(self, in_dim=28*28, hidden1=256, hidden2=128, num_classes=10, p=0.2):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden1),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p),
+            nn.Linear(hidden1, hidden2),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p),
+            nn.Linear(hidden2, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.flatten(x)
+        logits = self.net(x)
+        return F.log_softmax(logits, dim=1)

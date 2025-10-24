@@ -11,7 +11,7 @@ from os import makedirs
 from enum import Enum
 
 
-EPOCHS = 5
+EPOCHS = 15
 
 # ======================
 # MODEL DEFINITIONS

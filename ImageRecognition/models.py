@@ -120,6 +120,7 @@ class ModelCNN(ModelBase):
     def train(self):
         self.model.train()
         for i in range(EPOCHS):
+            print("EPOCH:",i)
             for batch, (X, y) in enumerate(self.train_dataloader):
                 X, y = X.to(self.device), y.to(self.device)
                 pred = self.model(X)
@@ -213,6 +214,7 @@ class ModelMLP(ModelBase):
     def train(self):
         self.model.train()
         for i in range(EPOCHS):
+            print("EPOCH:",i)
             for batch, (X, y) in enumerate(self.train_dataloader):
                 X, y = X.to(self.device), y.to(self.device)
                 pred = self.model(X)

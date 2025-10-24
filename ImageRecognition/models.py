@@ -11,6 +11,8 @@ from os import makedirs
 from enum import Enum
 
 
+EPOCHS = 5
+
 # ======================
 # MODEL DEFINITIONS
 # ======================
@@ -34,7 +36,7 @@ class NeuralNetwork(nn.Module):
         x = x.view(-1, 3*3*64)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
-        return F.log_softmax(self.fc2(x), dim=1)
+        return self.fc2(x)
 
 
 class MLPnn(nn.Module):
@@ -117,15 +119,16 @@ class ModelCNN(ModelBase):
 
     def train(self):
         self.model.train()
-        for batch, (X, y) in enumerate(self.train_dataloader):
-            X, y = X.to(self.device), y.to(self.device)
-            pred = self.model(X)
-            loss = self.loss_fn(pred, y)
-            loss.backward()
-            self.optimizer.step()
-            self.optimizer.zero_grad()
-            if batch % 100 == 0:
-                print(f"Batch {batch}: loss = {loss.item():.4f}")
+        for i in range(EPOCHS):
+            for batch, (X, y) in enumerate(self.train_dataloader):
+                X, y = X.to(self.device), y.to(self.device)
+                pred = self.model(X)
+                loss = self.loss_fn(pred, y)
+                loss.backward()
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+                if batch % 100 == 0:
+                    print(f"Batch {batch}: loss = {loss.item():.4f}")
 
     def test(self):
         self.model.eval()
@@ -209,15 +212,16 @@ class ModelMLP(ModelBase):
 
     def train(self):
         self.model.train()
-        for batch, (X, y) in enumerate(self.train_dataloader):
-            X, y = X.to(self.device), y.to(self.device)
-            pred = self.model(X)
-            loss = self.loss_fn(pred, y)
-            loss.backward()
-            self.optimizer.step()
-            self.optimizer.zero_grad()
-            if batch % 100 == 0:
-                print(f"Batch {batch}: loss = {loss.item():.4f}")
+        for i in range(EPOCHS):
+            for batch, (X, y) in enumerate(self.train_dataloader):
+                X, y = X.to(self.device), y.to(self.device)
+                pred = self.model(X)
+                loss = self.loss_fn(pred, y)
+                loss.backward()
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+                if batch % 100 == 0:
+                    print(f"Batch {batch}: loss = {loss.item():.4f}")
 
     def test(self):
         self.model.eval()
@@ -251,20 +255,46 @@ class ModelMLP(ModelBase):
 
 if __name__ == "__main__":
     # Example usage
-    print("Testing CNN...")
+    from threading import Thread
+
+    def create_cnn():
+        cnn = ModelCNN()
+        yield {"CNN": cnn}
+        print("Training CNN")
+        cnn.train()
+        cnn.save_model()
+
+    def create_mlp():
+        mlp = ModelMLP()
+        yield {"MLP": mlp}
+        print("Training MLP")
+        mlp.train()
+        mlp.save_model()
+
+    def create_svc():
+        svc = ModelSVC()
+        yield {"SVC": svc}
+        print("Training SVC")
+        svc.train()
+        svc.save_model()
+
+    print("Initialising Models")
+
+    threads: list[Thread] = []
+
+    threads.append(Thread(target=create_cnn))
+    threads.append(Thread(target=create_mlp))
+    threads.append(Thread(target=create_svc))
+    
     cnn = ModelCNN()
     cnn.train()
     cnn.test()
-    cnn.save_model()
-
-    print("Testing MLP...")
+    
     mlp = ModelMLP()
     mlp.train()
     mlp.test()
-    mlp.save_model()
 
-    print("Testing SVC...")
-    svc = ModelSVC()
-    svc.train()
-    svc.test()
-    svc.save_model()
+    #svc = ModelSVC()
+    #svc.train()
+    #svc.test()
+

@@ -63,6 +63,12 @@ class DigitDrawingApp:
         self.edge_label = tk.Label(self.processed_frame, text="Edges")
         self.edge_label.grid(row=0, column=2, padx=5, pady=5)
 
+        self.model_options = ["CNN", "MLP", "SVC"]
+        self.model_stringvar = tk.StringVar(value="CNN")
+        #ttk.OptionMenu(root, self.model_stringvar, *self.model_options).pack()
+        
+
+
 
         # Labels for showing the segmented images
         """self.contour_label = tk.Label(self.processed_frame, text="Contours")
@@ -215,18 +221,35 @@ Projection: {len(projection_digits)}""")
             "contour_digits": contour_digits
         }
 
+    @property
+    def active_model(self) -> ModelType:
+        value = self.model_stringvar.get()
+        match value:
+            case "CNN":
+                return ModelType.CNN
+            case "MLP":
+                return ModelType.MLP
+            case "SVC":
+                return ModelType.SVC
+            case _:
+                return ModelType.CNN
+
 
 
     def predict_drawing(self):
+        print(self.active_model)
         def prediction_sequence(self: DigitDrawingApp):
             drawing = self.process_drawing()
             normalised = drawing["contour_digits"]
             preds = ""
             for n in normalised:
                 n =  np.array([n])
-                n = torch.as_tensor(data=n,dtype=torch.float,device=self.image_rec.models[ModelType.CNN].device)
+                if self.active_model != ModelType.SVC:
+                    n = torch.as_tensor(data=n,dtype=torch.float,device=self.image_rec.models[self.active_model].device)
+                else:
+                    n = n.reshape(len(self.training_data), -1)
 
-                preds += str(self.image_rec.predict(ModelType.CNN, n)) + " "
+                preds += str(self.image_rec.predict(self.active_model, n)) + "  `"
             
             self.predict_result.set(f"Prediction: {preds}")
         prediction_thread = threading.Thread(target=prediction_sequence, args=[self])

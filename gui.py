@@ -88,7 +88,7 @@ class DigitDrawingApp:
         
         #self.image_rec = ImageRecognizer(64, model_path) 
         #commented this out to use MLP model ^
-        self.image_rec = ImageRecognizer(batch_size=64, model_path=model_path, model_type=ModelType.MLP)
+        self.image_rec = ImageRecognizer(batch_size=64, model_path=model_path)
 
     def train(self):
         epochs = self.epochs.get() if self.epochs.get() > 0 else 1
@@ -118,8 +118,6 @@ class DigitDrawingApp:
         self.gray_label.config(image='')
         self.binary_label.config(image='')
         self.edge_label.config(image='')
-        self.contour_label.config(image='')
-        self.projection_label.config(image='')
 
     def process_drawing(self):
         # Convert PIL image to grayscale
@@ -226,9 +224,9 @@ Projection: {len(projection_digits)}""")
             preds = ""
             for n in normalised:
                 n =  np.array([n])
-                n = torch.as_tensor(data=n,dtype=torch.float,device=self.image_rec.device)
+                n = torch.as_tensor(data=n,dtype=torch.float,device=self.image_rec.models[ModelType.CNN].device)
 
-                preds += self.image_rec.predict(n) + " "
+                preds += str(self.image_rec.predict(ModelType.CNN, n)) + " "
             
             self.predict_result.set(f"Prediction: {preds}")
         prediction_thread = threading.Thread(target=prediction_sequence, args=[self])

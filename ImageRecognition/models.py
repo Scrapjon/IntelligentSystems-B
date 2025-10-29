@@ -86,7 +86,7 @@ class ModelBase:
     def __initialize_model__(self, model_path):
         raise NotImplementedError
 
-    def train(self):
+    def train(self, epochs = EPOCHS):
         raise NotImplementedError
 
     def test(self):
@@ -117,9 +117,9 @@ class ModelCNN(ModelBase):
 
         print(self.model)
 
-    def train(self):
+    def train(self, epochs = EPOCHS):
         self.model.train()
-        for i in range(EPOCHS):
+        for i in range(epochs):
             print("EPOCH:",i)
             for batch, (X, y) in enumerate(self.train_dataloader):
                 X, y = X.to(self.device), y.to(self.device)
@@ -211,9 +211,9 @@ class ModelMLP(ModelBase):
 
         print(self.model)
 
-    def train(self):
+    def train(self, epochs = EPOCHS):
         self.model.train()
-        for i in range(EPOCHS):
+        for i in range(epochs):
             print("EPOCH:",i)
             for batch, (X, y) in enumerate(self.train_dataloader):
                 X, y = X.to(self.device), y.to(self.device)

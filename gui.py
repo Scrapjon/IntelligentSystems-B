@@ -8,6 +8,7 @@ import ImageRecognition
 from pathlib import Path
 from ImageRecognition.image_recognizer import ImageRecognizer, ModelType
 from ImageRecognition.segmentation import (segment_contours, segment_connected, segment_projection)
+from ImageRecognition.models import ModelBase
 import torch
 
 MODEL_PATH = Path(__file__, "ImageRecognition", "model", "model.pth")
@@ -63,9 +64,12 @@ class DigitDrawingApp:
         self.edge_label = tk.Label(self.processed_frame, text="Edges")
         self.edge_label.grid(row=0, column=2, padx=5, pady=5)
 
-        self.model_options = ["CNN", "MLP", "SVC"]
+        self.model_options = ["", "CNN", "MLP", "SVC"]
+        print(*self.model_options)
         self.model_stringvar = tk.StringVar(value="CNN")
-        #ttk.OptionMenu(root, self.model_stringvar, *self.model_options).pack()
+        self.option_menu = ttk.OptionMenu(root, self.model_stringvar, *self.model_options)
+        self.option_menu.grid(row=5, column=5)
+        
         
 
 
@@ -98,8 +102,9 @@ class DigitDrawingApp:
 
     def train(self):
         epochs = self.epochs.get() if self.epochs.get() > 0 else 1
+        model: ModelBase = self.image_rec.models[self.active_model]
         def train_sequence(self,epochs):
-            self.image_rec.training_loop(epochs)
+            model.train()
             self.image_rec.save_model()
         training_thread = threading.Thread(target=train_sequence, args=(self,epochs))
         training_thread.start()
@@ -242,12 +247,13 @@ Projection: {len(projection_digits)}""")
             drawing = self.process_drawing()
             normalised = drawing["contour_digits"]
             preds = ""
+            model = self.image_rec.models[self.active_model]
             for n in normalised:
                 n =  np.array([n])
                 if self.active_model != ModelType.SVC:
-                    n = torch.as_tensor(data=n,dtype=torch.float,device=self.image_rec.models[self.active_model].device)
+                    n = torch.as_tensor(data=n,dtype=torch.float,device=model.device)
                 else:
-                    n = n.reshape(len(self.training_data), -1)
+                    n = n.reshape(len(model), -1)
 
                 preds += str(self.image_rec.predict(self.active_model, n)) + "  `"
             

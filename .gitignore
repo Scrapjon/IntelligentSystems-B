@@ -186,3 +186,4 @@ ImageRecognition/model/
 
 .vscode/
 .idea/
+.DS_Store

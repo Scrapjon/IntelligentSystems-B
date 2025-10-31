@@ -118,9 +118,10 @@ class ModelCNN(ModelBase):
         print(self.model)
 
     def train(self, epochs = EPOCHS):
+        print("Training CNN Model")
         self.model.train()
         for i in range(epochs):
-            print("EPOCH:",i)
+            print("CNN Training: EPOCH:",i)
             for batch, (X, y) in enumerate(self.train_dataloader):
                 X, y = X.to(self.device), y.to(self.device)
                 pred = self.model(X)
@@ -129,7 +130,7 @@ class ModelCNN(ModelBase):
                 self.optimizer.step()
                 self.optimizer.zero_grad()
                 if batch % 100 == 0:
-                    print(f"Batch {batch}: loss = {loss.item():.4f}")
+                    print(f"CNN Training: Batch {batch}: loss = {loss.item():.4f}")
 
     def test(self):
         self.model.eval()
@@ -212,9 +213,10 @@ class ModelMLP(ModelBase):
         print(self.model)
 
     def train(self, epochs = EPOCHS):
+        print("Training MLP Model")
         self.model.train()
         for i in range(epochs):
-            print("EPOCH:",i)
+            print("MLP Training: EPOCH:",i)
             for batch, (X, y) in enumerate(self.train_dataloader):
                 X, y = X.to(self.device), y.to(self.device)
                 pred = self.model(X)
@@ -223,7 +225,7 @@ class ModelMLP(ModelBase):
                 self.optimizer.step()
                 self.optimizer.zero_grad()
                 if batch % 100 == 0:
-                    print(f"Batch {batch}: loss = {loss.item():.4f}")
+                    print(f"MLP Training: Batch {batch}: loss = {loss.item():.4f}")
 
     def test(self):
         self.model.eval()

@@ -102,12 +102,16 @@ class DigitDrawingApp:
 
     def train(self):
         epochs = self.epochs.get() if self.epochs.get() > 0 else 1
-        model: ModelBase = self.image_rec.models[self.active_model]
-        def train_sequence(self,epochs):
+        
+        def train_sequence(self,model,epochs):
             model.train()
             self.image_rec.save_model()
-        training_thread = threading.Thread(target=train_sequence, args=(self,epochs))
-        training_thread.start()
+        threads: list[threading.Thread] = []
+        for model_type in [ModelType.CNN,ModelType.MLP,ModelType.SVC]:
+            training_thread = threading.Thread(target=train_sequence, args=(self,self.image_rec.models[model_type],epochs))
+            threads.append(training_thread)
+        for t in threads:
+            t.start()
 
     def draw(self, event):
         if self.old_x and self.old_y:

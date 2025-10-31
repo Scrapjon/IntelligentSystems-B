@@ -182,7 +182,7 @@ cython_debug/
 
 # Stuff for project
 ImageRecognition/data/
-ImageRecognition/model/
+#ImageRecognition/model/
 
 .vscode/
 .idea/

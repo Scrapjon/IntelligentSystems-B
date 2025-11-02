@@ -10,6 +10,7 @@ from ImageRecognition.image_recognizer import ImageRecognizer, ModelType
 from ImageRecognition.segmentation import (segment_contours, segment_connected, segment_projection)
 from ImageRecognition.models import ModelBase
 import torch
+from torchvision.transforms import ToTensor, Compose, Normalize
 
 MODEL_PATH = Path(__file__, "ImageRecognition", "model", "model.pth")
 
@@ -251,17 +252,47 @@ Projection: {len(projection_digits)}""")
             drawing = self.process_drawing()
             normalised = drawing["contour_digits"]
             preds = ""
+            # Define the same transformations used for MNIST training data
+            mnist_transform = Compose([
+                ToTensor(),
+                Normalize((0.1307,), (0.3081,))
+            ])
+
             model = self.image_rec.models[self.active_model]
             for n in normalised:
-                n =  np.array([n])
-                if self.active_model != ModelType.SVC:
-                    n = torch.as_tensor(data=n,dtype=torch.float,device=model.device)
-                else:
-                    n = n.reshape(len(model), -1)
+                # 'n' is a 28x28 numpy array (white digit on black background)
 
-                preds += str(self.image_rec.predict(self.active_model, n)) + "  `"
-            
-            self.predict_result.set(f"Prediction: {preds}")
+                if self.active_model != ModelType.SVC:
+                    # 1. Convert numpy array to PIL Image (optional, but standard for ToTensor)
+                    #    or convert directly to tensor and apply transforms manually if needed.
+                    #    Since 'n' is already 28x28, let's use transforms if they work on a numpy array.
+
+                    # A direct way to transform a numpy array to match MNIST data format:
+                    # Convert to FloatTensor, add batch dimension, and normalize
+                    n_tensor = torch.from_numpy(n).float().unsqueeze(0) / 255.0 
+                    # MNIST ToTensor converts to [0,1]. Unsqueeze(0) for channel dim (1, 28, 28).
+
+                    # Now apply the MNIST-specific normalization
+                    # Mean and std for MNIST (as defined in models.py)
+                    mean = 0.1307
+                    std = 0.3081
+                    n_tensor = (n_tensor - mean) / std
+
+                    n_tensor = n_tensor.to(model.device)
+
+                else: # SVC model
+                    # SVC expects the raw, flattened pixel values (0-255), not normalized.
+                    n_tensor = n.reshape(1, -1)
+
+                # ... rest of prediction logic ...
+                if self.active_model != ModelType.SVC:
+                    # Pass the prepared tensor to predict
+                    preds += str(self.image_rec.predict(self.active_model, n_tensor)) + "  `"
+                    self.predict_result.set(f"Prediction: {preds}")
+                else:
+                    # Pass the prepared numpy array to predict
+                    preds += str(self.image_rec.predict(self.active_model, n_tensor)) + "  `"
+                    self.predict_result.set(f"Prediction: {preds}")
         prediction_thread = threading.Thread(target=prediction_sequence, args=[self])
         prediction_thread.start()
         

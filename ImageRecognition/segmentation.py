@@ -102,3 +102,101 @@ def segment_projection(img_np):
 
     return digits
 
+# In segmentation.py
+import cv2
+import numpy as np
+# ... (your other segmentation functions) ...
+
+
+def segment_watershed(img_np):
+    """
+    Segmentation using the watershed algorithm to separate touching digits.
+    """
+    # 1. Binarize the image (white digit on black background)
+    _, thresh = cv2.threshold(img_np, 128, 255, cv2.THRESH_BINARY_INV)
+
+    # --- This is the critical tuning section ---
+    
+    # 2. Find "sure foreground" (cores of the digits) by eroding
+    # A smaller kernel (3x3) and fewer iterations are sensitive.
+    # More iterations will separate stubborn digits but might erase thin ones (like "1").
+    kernel = np.ones((3,3), np.uint8)
+    sure_fg = cv2.erode(thresh, kernel, iterations=2)
+
+    # 3. Find "sure background" by dilating
+    sure_bg = cv2.dilate(thresh, kernel, iterations=3)
+    
+    # --- End tuning section ---
+
+    # 4. Find the "unknown" region (the boundaries where basins will meet)
+    unknown = cv2.subtract(sure_bg, sure_fg)
+
+    # 5. Create markers for the watershed algorithm
+    # Labels background as 0, and other objects as 1, 2, 3...
+    _, markers = cv2.connectedComponents(sure_fg)
+
+    # Add 1 to all labels so that the "sure background" is 1, not 0
+    markers = markers + 1
+
+    # Mark the unknown region with 0
+    markers[unknown == 255] = 0
+
+    # 6. Run the watershed algorithm
+    # It requires a 3-channel (color) image as input
+    img_bgr = cv2.cvtColor(img_np, cv2.COLOR_GRAY2BGR)
+    markers = cv2.watershed(img_bgr, markers)
+
+    # Boundaries are now marked with -1 in 'markers'
+    
+    # Invert the original grayscale image to match MNIST (white-on-black)
+    # We will crop from this to preserve grayscale data for the SVC model
+    img_inverted_grayscale = 255 - img_np
+
+    digits = []
+    
+    # Loop through all found labels (1 is background, -1 is boundary)
+    for label in np.unique(markers):
+        if label <= 1:
+            continue
+        
+        # Create a mask for the current label
+        mask = np.zeros(img_np.shape, dtype="uint8")
+        mask[markers == label] = 255
+
+        # Find the contour of this segmented object
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            continue
+
+        # Get the bounding box of the segmented digit
+        c = max(contours, key=cv2.contourArea)
+        x, y, w, h = cv2.boundingRect(c)
+
+        # Ignore noise
+        if w < 5 or h < 5:
+            continue
+
+        # --- Crop from the INVERTED GRAYSCALE image ---
+        digit_crop = img_inverted_grayscale[y:y+h, x:x+w]
+        
+        # --- MNIST-style Preprocessing (Center and Pad) ---
+        canvas = np.zeros((28, 28), dtype=np.uint8)
+        max_dim = max(w, h)
+        scale = 20.0 / max_dim
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+
+        if new_w == 0: new_w = 1
+        if new_h == 0: new_h = 1
+
+        digit_resized = cv2.resize(digit_crop, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+        start_x = (28 - new_w) // 2
+        start_y = (28 - new_h) // 2
+
+        canvas[start_y : start_y + new_h, start_x : start_x + new_w] = digit_resized
+        
+        digits.append(canvas)
+
+    return digits
+

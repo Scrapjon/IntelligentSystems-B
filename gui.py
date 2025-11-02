@@ -8,6 +8,7 @@ import ImageRecognition
 from pathlib import Path
 from ImageRecognition.image_recognizer import ImageRecognizer, ModelType
 from ImageRecognition.segmentation import (segment_contours, segment_connected, segment_projection)
+from ImageRecognition.segmentation import (segment_contours, segment_connected, segment_projection, segment_watershed)
 from ImageRecognition.models import ModelBase
 import torch
 from torchvision.transforms import ToTensor, Compose, Normalize
@@ -177,6 +178,7 @@ class DigitDrawingApp:
         contour_digits = segment_contours(img_np)
         connected_digits = segment_connected(img_np)
         projection_digits = segment_projection(img_np)
+        watershed_digits = segment_watershed(img_np)
 
         for digits in [contour_digits, connected_digits, projection_digits]:
             for i,digit in enumerate(digits):
@@ -187,6 +189,8 @@ class DigitDrawingApp:
 Contour: {len(contour_digits)}
 Connected: {len(connected_digits)}
 Projection: {len(projection_digits)}""")
+Projection: {len(projection_digits)})
+Watershed: {len(watershed_digits)}""")
 
         # Helper to display multiple segmented digits beneath a label
         def display_segmented_digits(digit_list, parent_frame, row, label_text):
@@ -210,6 +214,7 @@ Projection: {len(projection_digits)}""")
         display_segmented_digits(contour_digits, self.processed_frame, row=1, label_text="Contours")
         display_segmented_digits(connected_digits, self.processed_frame, row=2, label_text="Connected")
         display_segmented_digits(projection_digits, self.processed_frame, row=3, label_text="Projection")
+        display_segmented_digits(watershed_digits, self.processed_frame, row=4, label_text="Watershed")
 
 
         """if contour_digits:
@@ -238,7 +243,8 @@ Projection: {len(projection_digits)}""")
             "binary": binary,
             "Connected": connected_digits,
             "Projection": projection_digits,
-            "Contour": contour_digits
+            "Contour": contour_digits,
+            "Watershed (Aggressive)": watershed_digits
         }
 
     @property

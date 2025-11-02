@@ -144,6 +144,7 @@ class ModelCNN(ModelBase):
         test_loss /= len(self.test_dataloader)
         accuracy = 100 * correct / len(self.test_data)
         print(f"Test Accuracy: {accuracy:.2f}%, Avg loss: {test_loss:.4f}")
+        return accuracy
 
     def save_model(self):
         save_path = Path(MODEL_FOLDER, "cnn_model.pth")
@@ -182,6 +183,7 @@ class ModelSVC(ModelBase):
         preds = self.model.predict(self.X_test)
         acc = accuracy_score(self.y_test, preds)
         print(f"SVC Test Accuracy: {acc*100:.2f}%")
+        return acc
 
     def save_model(self):
         import joblib
@@ -239,6 +241,7 @@ class ModelMLP(ModelBase):
         test_loss /= len(self.test_dataloader)
         accuracy = 100 * correct / len(self.test_data)
         print(f"MLP Test Accuracy: {accuracy:.2f}%, Avg loss: {test_loss:.4f}")
+        return accuracy
 
     def save_model(self):
         save_path = Path(MODEL_FOLDER, "mlp_model.pth")
@@ -290,15 +293,15 @@ if __name__ == "__main__":
     threads.append(Thread(target=create_mlp))
     threads.append(Thread(target=create_svc))
     
-    cnn = ModelCNN()
-    cnn.train()
-    cnn.test()
-    
-    mlp = ModelMLP()
-    mlp.train()
-    mlp.test()
+    #cnn = ModelCNN()
+    #cnn.train()
+    #cnn.test()
+    #
+    #mlp = ModelMLP()
+    #mlp.train()
+    #mlp.test()
 
-    #svc = ModelSVC()
-    #svc.train()
-    #svc.test()
+    svc = ModelSVC()
+    svc.train()
+    svc.test()
 

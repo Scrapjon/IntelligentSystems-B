@@ -108,7 +108,7 @@ import numpy as np
 # ... (your other segmentation functions) ...
 
 
-def segment_watershed(img_np):
+def segment_watershed(img_np, erosion = 2, dilation = 3):
     """
     Segmentation using the watershed algorithm to separate touching digits.
     """

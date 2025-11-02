@@ -17,97 +17,98 @@ MODEL_DIR = Path(__file__).parent / "ImageRecognition" / "model"
 
 class DigitDrawingApp:
     def __init__(self, root, model_dir = None):
-        self.root = root
-        self.root.title("Digit Drawing and Preprocessing Demo")
-
-        # Canvas size
-        self.canvas_width = 280
-        self.canvas_height = 280
-
-        # Drawing canvas
-        self.canvas = tk.Canvas(root, width=self.canvas_width, height=self.canvas_height, bg='white', cursor="cross")
-        self.canvas.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
-
-        # Buttons
-        self.clear_btn = ttk.Button(root, text="Clear", command=self.clear_canvas)
-        self.clear_btn.grid(row=1, column=0, pady=10)
-
-        self.process_btn = ttk.Button(root, text="Process", command=self.process_drawing)
-        self.process_btn.grid(row=1, column=1, pady=10)
-
-
-        self.predict_btn = ttk.Button(root, text="Predict", command=self.predict_drawing)
-        self.predict_btn.grid(row=1, column=2, pady=10)
-
-        self.predict_result = tk.StringVar(root, value="Prediction: None")
-        self.predict_result_label = tk.Label(root, textvariable=self.predict_result)
-        self.predict_result_label.grid(row=3, column=2, pady=10)
-
-        self.train_btn = ttk.Button(root, text="Train", command=self.train)
-        self.train_btn.grid(row=1,column=3, pady=10)
-
-        self.epochs = tk.IntVar(root, value=5)
-
-        self.train_entry = ttk.Entry(root, textvariable=self.epochs)
-        self.train_entry.grid(row=1,column=4, pady=10)
-
-
-        # Panel for processed images (Segmented images included)
-        self.processed_frame = tk.Frame(root)
-        self.processed_frame.grid(row=2, column=0, columnspan=5, pady=10)
-
-        # Labels for showing processed images
-        self.gray_label = tk.Label(self.processed_frame, text="Gray")
-        self.gray_label.grid(row=0, column=0, padx=5, pady=5)
-
-        self.binary_label = tk.Label(self.processed_frame, text="Binary")
-        self.binary_label.grid(row=0, column=1, padx=5, pady=5)
-
-        self.edge_label = tk.Label(self.processed_frame, text="Edges")
-        self.edge_label.grid(row=0, column=2, padx=5, pady=5)
-
-
-        self.segmentation_options = ["","Projection", "Contour", "Connected","Watershed (Aggressive)"]
-        self.segmentation_stringvar = tk.StringVar(value="Projection")
-        self.segmentation_menu = ttk.OptionMenu(root,self.segmentation_stringvar, *self.segmentation_options)
-        self.segmentation_menu.grid(row=4,column=5)
-
-
-        self.model_options = ["", "CNN", "MLP", "SVC"]
-        print(*self.model_options)
-        self.model_stringvar = tk.StringVar(value="CNN")
-        self.model_menu = ttk.OptionMenu(root, self.model_stringvar, *self.model_options)
-        self.model_menu.grid(row=5, column=5)
-        
-        
-
-
-
-        # Labels for showing the segmented images
-        """self.contour_label = tk.Label(self.processed_frame, text="Contours")
-        self.contour_label.grid(row=0, column=3, padx=5, pady=5)
-
-        self.connected_label = tk.Label(self.processed_frame, text="Connected")
-        self.connected_label.grid(row=0, column=4, padx=5, pady=5)
-
-        self.projection_label = tk.Label(self.processed_frame, text="Projection")
-        self.projection_label.grid(row=0, column=5, padx=5, pady=5)"""
-
-        # For drawing
-        self.old_x = None
-        self.old_y = None
-        self.pen_width = 8  # thickness of the drawing pen
-        self.canvas.bind('<B1-Motion>', self.draw)
-        self.canvas.bind('<ButtonRelease-1>', self.reset)
-
-        # Create a PIL image to draw on
-        self.image = Image.new("RGB", (self.canvas_width, self.canvas_height), 'white')
-        self.draw_image = ImageDraw.Draw(self.image)
-
-        
-        #self.image_rec = ImageRecognizer(64, model_path) 
-        #commented this out to use MLP model ^
-        self.image_rec = ImageRecognizer(batch_size=64, model_dir = model_dir)
+            self.root = root
+            self.root.title("Digit Drawing and Preprocessing Demo")
+            self.root.geometry("700x900")  # Adjust window size
+    
+            # Canvas size
+            self.canvas_width = 280
+            self.canvas_height = 280
+    
+            # Drawing Canvas
+            self.canvas = tk.Canvas(root, width=self.canvas_width, height=self.canvas_height, bg='white', cursor="cross", relief="solid", bd=2)
+            self.canvas.grid(row=0, column=0, columnspan=3, padx=10, pady=20)
+    
+            # Button Styling (Tuned for Consistency)
+            button_style = ttk.Style()
+            button_style.configure("TButton", font=("Arial", 10), padding=6)
+    
+            # Buttons
+            self.clear_btn = ttk.Button(root, text="Clear", command=self.clear_canvas, style="TButton")
+            self.clear_btn.grid(row=1, column=0, pady=10, padx=10, sticky="ew")
+    
+            self.process_btn = ttk.Button(root, text="Process", command=self.process_drawing, style="TButton")
+            self.process_btn.grid(row=1, column=1, pady=10, padx=10, sticky="ew")
+    
+            self.predict_btn = ttk.Button(root, text="Predict", command=self.predict_drawing, style="TButton")
+            self.predict_btn.grid(row=1, column=2, pady=10, padx=10, sticky="ew")
+    
+            # Prediction Result Label
+            self.predict_result = tk.StringVar(root, value="Prediction: None")
+            self.predict_result_label = tk.Label(root, textvariable=self.predict_result, font=("Arial", 12))
+            self.predict_result_label.grid(row=2, column=0, columnspan=3, pady=10)
+    
+            # Training Controls (Buttons and Entry)
+            self.train_btn = ttk.Button(root, text="Train", command=self.train, style="TButton")
+            self.train_btn.grid(row=3, column=0, pady=10, padx=10, sticky="ew")
+    
+            self.epochs = tk.IntVar(root, value=5)
+            self.train_entry = ttk.Entry(root, textvariable=self.epochs, width=10)
+            self.train_entry.grid(row=3, column=1, pady=10, padx=10)
+    
+            # Panel for Processed Images
+            self.processed_frame = tk.Frame(root)
+            self.processed_frame.grid(row=4, column=0, columnspan=3, pady=20)
+    
+            # Labels for processed images
+            self.gray_label = tk.Label(self.processed_frame, text="Gray", font=("Arial", 10))
+            self.gray_label.grid(row=0, column=0, padx=5, pady=5)
+    
+            self.binary_label = tk.Label(self.processed_frame, text="Binary", font=("Arial", 10))
+            self.binary_label.grid(row=0, column=1, padx=5, pady=5)
+    
+            self.edge_label = tk.Label(self.processed_frame, text="Edges", font=("Arial", 10))
+            self.edge_label.grid(row=0, column=2, padx=5, pady=5)
+    
+            # Segmentation Options Menu
+            self.segmentation_options = ["", "Projection", "Contour", "Connected", "Watershed (Aggressive)"]
+            self.segmentation_stringvar = tk.StringVar(value="Projection")
+            self.segmentation_menu = ttk.OptionMenu(root, self.segmentation_stringvar, *self.segmentation_options)
+            self.segmentation_menu.grid(row=5, column=0, pady=10, padx=10)
+    
+            # Tuning Controls (Erosion and Dilation Iterations)
+            self.tuning_frame = tk.Frame(root)
+            self.tuning_frame.grid(row=6, column=0, columnspan=3, pady=20)
+    
+            self.erosion_iterations = tk.IntVar(value=2)
+            ttk.Label(self.tuning_frame, text="Erosion Iterations:", font=("Arial", 10)).grid(row=0, column=0, sticky=tk.W)
+            ttk.Label(self.tuning_frame, textvariable=self.erosion_iterations, font=("Arial", 10)).grid(row=0, column=1, sticky=tk.E)
+            ttk.Scale(self.tuning_frame, from_=1, to=5, orient=tk.HORIZONTAL, variable=self.erosion_iterations).grid(row=1, column=0, columnspan=2, sticky=(tk.W, tk.E))
+    
+            self.dilation_iterations = tk.IntVar(value=3)
+            ttk.Label(self.tuning_frame, text="Dilation Iterations:", font=("Arial", 10)).grid(row=2, column=0, sticky=tk.W)
+            ttk.Label(self.tuning_frame, textvariable=self.dilation_iterations, font=("Arial", 10)).grid(row=2, column=1, sticky=tk.E)
+            ttk.Scale(self.tuning_frame, from_=1, to=5, orient=tk.HORIZONTAL, variable=self.dilation_iterations).grid(row=3, column=0, columnspan=2, sticky=(tk.W, tk.E))
+    
+            # Model Selection Menu
+            self.model_options = ["", "CNN", "MLP", "SVC"]
+            self.model_stringvar = tk.StringVar(value="CNN")
+            self.model_menu = ttk.OptionMenu(root, self.model_stringvar, *self.model_options)
+            self.model_menu.grid(row=7, column=0, pady=10, padx=10)
+    
+            # For drawing
+            self.old_x = None
+            self.old_y = None
+            self.pen_width = 8  # thickness of the drawing pen
+            self.canvas.bind('<B1-Motion>', self.draw)
+            self.canvas.bind('<ButtonRelease-1>', self.reset)
+    
+            # Create a PIL image to draw on
+            self.image = Image.new("RGB", (self.canvas_width, self.canvas_height), 'white')
+            self.draw_image = ImageDraw.Draw(self.image)
+    
+            # Image Recognizer (for MLP model)
+            self.image_rec = ImageRecognizer(batch_size=64, model_dir=model_dir)
 
     def train(self):
         epochs = self.epochs.get() if self.epochs.get() > 0 else 1
@@ -173,23 +174,6 @@ class DigitDrawingApp:
         self.edge_label.config(image=edges_tk)
         self.edge_label.image = edges_tk
 
-        # --- Segmentation techniques ---
-        contour_digits = segment_contours(img_np)
-        connected_digits = segment_connected(img_np)
-        projection_digits = segment_projection(img_np)
-        watershed_digits = segment_watershed(img_np)
-
-        for digits in [contour_digits, connected_digits, projection_digits]:
-            for i,digit in enumerate(digits):
-                #digits[i] = (digit - digit.min()) / (digit.max() - digit.min())
-                pass
-
-        print(f"""
-Contour: {len(contour_digits)}
-Connected: {len(connected_digits)}
-Projection: {len(projection_digits)})
-Watershed: {len(watershed_digits)}""")
-
         # Helper to display multiple segmented digits beneath a label
         def display_segmented_digits(digit_list, parent_frame, row, label_text):
             # Clear previous widgets in that row except the first column (label)
@@ -209,10 +193,25 @@ Watershed: {len(watershed_digits)}""")
                 lbl.grid(row=row, column=i+1, padx=2, pady=2)
 
         # Display all segmented digits in rows beneath the main previews
-        display_segmented_digits(contour_digits, self.processed_frame, row=1, label_text="Contours")
-        display_segmented_digits(connected_digits, self.processed_frame, row=2, label_text="Connected")
-        display_segmented_digits(projection_digits, self.processed_frame, row=3, label_text="Projection")
-        display_segmented_digits(watershed_digits, self.processed_frame, row=4, label_text="Watershed")
+        match self.segmentation_stringvar.get():
+            case "Contour":
+                digits = segment_contours(img_np)
+                display_segmented_digits(digits, self.processed_frame, row=1, label_text="Contours")
+
+            case "Connected":
+                digits = segment_connected(img_np)
+                display_segmented_digits(digits, self.processed_frame, row=2, label_text="Connected")
+
+            case "Projection":
+                digits = segment_projection(img_np)
+                display_segmented_digits(digits, self.processed_frame, row=3, label_text="Projection")
+
+            case "Watershed (Aggressive)":
+                digits = segment_watershed(img_np)
+                display_segmented_digits(digits, self.processed_frame, row=4, label_text="Watershed")
+            case _:
+                print("Invalid option selected!")
+
 
 
         """if contour_digits:
@@ -239,10 +238,7 @@ Watershed: {len(watershed_digits)}""")
             "normalised": normalised_img_np,
             "edges": edges,
             "binary": binary,
-            "Connected": connected_digits,
-            "Projection": projection_digits,
-            "Contour": contour_digits,
-            "Watershed (Aggressive)": watershed_digits
+            "digits": digits
         }
 
     @property
@@ -268,7 +264,7 @@ Watershed: {len(watershed_digits)}""")
             drawing = self.process_drawing()
             
             # This now contains correctly centered 28x28 numpy arrays
-            segmented_digits = drawing[self.segmentation_stringvar.get()]
+            segmented_digits = drawing["digits"]
             preds = ""
             
             # Define the same transformations used for MNIST training data
@@ -310,13 +306,18 @@ Watershed: {len(watershed_digits)}""")
 
         prediction_thread = threading.Thread(target=prediction_sequence, args=[self])
         prediction_thread.start()
+
+    def run_tests(self):
+        for model_type in self.image_rec.models.keys():
+            model: ModelBase = self.image_rec.models[model_type]
+            yield model.test(), model_type
         
 
 def start_app() -> tuple[DigitDrawingApp, threading.Thread]:
     root = tk.Tk()
     app = DigitDrawingApp(root, MODEL_DIR)
     #app.image_rec.evaluate()
-    main_loop = threading.Thread(target=root.mainloop())
+    main_loop = threading.Thread(target=root.mainloop)
     return app, main_loop
     
     

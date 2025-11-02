@@ -12,10 +12,11 @@ from ImageRecognition.models import ModelBase
 import torch
 from torchvision.transforms import ToTensor, Compose, Normalize
 
-MODEL_PATH = Path(__file__, "ImageRecognition", "model", "model.pth")
+'''MODEL_PATH = Path(__file__, "ImageRecognition", "model", "model.pth")'''
+MODEL_DIR = Path(__file__).parent / "ImageRecognition" / "model"
 
 class DigitDrawingApp:
-    def __init__(self, root, model_path = None):
+    def __init__(self, root, model_dir = None):
         self.root = root
         self.root.title("Digit Drawing and Preprocessing Demo")
 
@@ -99,7 +100,7 @@ class DigitDrawingApp:
         
         #self.image_rec = ImageRecognizer(64, model_path) 
         #commented this out to use MLP model ^
-        self.image_rec = ImageRecognizer(batch_size=64, model_path=model_path)
+        self.image_rec = ImageRecognizer(batch_size=64, model_dir = model_dir)
 
     def train(self):
         epochs = self.epochs.get() if self.epochs.get() > 0 else 1
@@ -247,59 +248,60 @@ Projection: {len(projection_digits)}""")
 
 
     def predict_drawing(self):
-        print(self.active_model)
+        print(f"Predicting with model: {self.active_model}")
+        
+        # This function runs in a separate thread
         def prediction_sequence(self: DigitDrawingApp):
             drawing = self.process_drawing()
-            normalised = drawing["contour_digits"]
+            
+            # This now contains correctly centered 28x28 numpy arrays
+            segmented_digits = drawing["contour_digits"]
             preds = ""
+            
             # Define the same transformations used for MNIST training data
+            # This is the correct transform pipeline from models.py
             mnist_transform = Compose([
-                ToTensor(),
-                Normalize((0.1307,), (0.3081,))
+                ToTensor(),  # Converts PIL Image [0, 255] to Tensor [0.0, 1.0] and adds Channel dim
+                Normalize((0.1307,), (0.3081,)) # MNIST-specific normalization
             ])
 
             model = self.image_rec.models[self.active_model]
-            for n in normalised:
+            
+            for n in segmented_digits:
                 # 'n' is a 28x28 numpy array (white digit on black background)
 
                 if self.active_model != ModelType.SVC:
-                    # 1. Convert numpy array to PIL Image (optional, but standard for ToTensor)
-                    #    or convert directly to tensor and apply transforms manually if needed.
-                    #    Since 'n' is already 28x28, let's use transforms if they work on a numpy array.
+                    # --- Start Fix ---
+                    
+                    # 1. Convert numpy array to PIL Image (which ToTensor() expects)
+                    # 'L' mode is for 8-bit grayscale
+                    pil_image = Image.fromarray(n, mode='L')
 
-                    # A direct way to transform a numpy array to match MNIST data format:
-                    # Convert to FloatTensor, add batch dimension, and normalize
-                    n_tensor = torch.from_numpy(n).float().unsqueeze(0) / 255.0 
-                    # MNIST ToTensor converts to [0,1]. Unsqueeze(0) for channel dim (1, 28, 28).
+                    # 2. Apply the *exact* transform used in training
+                    # This scales to [0,1], normalizes, and sets shape to [1, 28, 28] (C, H, W)
+                    n_tensor = mnist_transform(pil_image)
 
-                    # Now apply the MNIST-specific normalization
-                    # Mean and std for MNIST (as defined in models.py)
-                    mean = 0.1307
-                    std = 0.3081
-                    n_tensor = (n_tensor - mean) / std
-
-                    n_tensor = n_tensor.to(model.device)
-
+                    # 3. Add the batch dimension (B, C, H, W)
+                    # Models expect a batch, so we unsqueeze at dim 0
+                    n_tensor = n_tensor.unsqueeze(0).to(model.device)
+                    # --- End Fix ---
+                    
                 else: # SVC model
-                    # SVC expects the raw, flattened pixel values (0-255), not normalized.
-                    n_tensor = n.reshape(1, -1)
+                    # SVC expects the raw, flattened pixel values (0-255)
+                    n_tensor = n.reshape(1, -1) # This was already correct
 
-                # ... rest of prediction logic ...
-                if self.active_model != ModelType.SVC:
-                    # Pass the prepared tensor to predict
-                    preds += str(self.image_rec.predict(self.active_model, n_tensor)) + "  `"
-                    self.predict_result.set(f"Prediction: {preds}")
-                else:
-                    # Pass the prepared numpy array to predict
-                    preds += str(self.image_rec.predict(self.active_model, n_tensor)) + "  `"
-                    self.predict_result.set(f"Prediction: {preds}")
+                # Pass the prepared tensor (or array for SVC) to the model
+                prediction = self.image_rec.predict(self.active_model, n_tensor)
+                preds += str(prediction) + "  "
+                self.predict_result.set(f"Prediction: {preds}")
+
         prediction_thread = threading.Thread(target=prediction_sequence, args=[self])
         prediction_thread.start()
         
 
 def start_app() -> tuple[DigitDrawingApp, threading.Thread]:
     root = tk.Tk()
-    app = DigitDrawingApp(root, MODEL_PATH)
+    app = DigitDrawingApp(root, MODEL_DIR)
     #app.image_rec.evaluate()
     main_loop = threading.Thread(target=root.mainloop())
     return app, main_loop

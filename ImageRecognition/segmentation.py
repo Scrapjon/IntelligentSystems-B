@@ -2,18 +2,57 @@ import cv2
 import numpy as np
 
 def segment_contours(img_np):
+    """
+    Segmentation using contour detection.
+    This version scales the digit to fit a 20x20 box and centers it 
+    in a 28x28 canvas to match MNIST formatting.
+    """
     
-    #Segmentation using contour detection.
-    #Works well for single & multiple digits, but may struggle with connected ones.
-    
+    # Invert the image: MNIST is white digit (255) on black background (0)
+    # Your canvas is black digit (0) on white background (255)
+    # THRESH_BINARY_INV handles this inversion.
     _, thresh = cv2.threshold(img_np, 128, 255, cv2.THRESH_BINARY_INV)
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
     digits = []
+    
     for c in contours:
         x, y, w, h = cv2.boundingRect(c)
-        digit = thresh[y:y+h, x:x+w]
-        digit_resized = cv2.resize(digit, (28, 28))
-        digits.append(digit_resized)
+
+        # Ignore small noise contours
+        if w < 5 or h < 5:
+            continue
+
+        # Crop the digit from the thresholded image
+        digit_crop = thresh[y:y+h, x:x+w]
+
+        # --- MNIST-style Preprocessing ---
+        
+        # 1. Create a new 28x28 black canvas
+        canvas = np.zeros((28, 28), dtype=np.uint8)
+
+        # 2. Resize the cropped digit to fit within a 20x20 box, maintaining aspect ratio
+        max_dim = max(w, h)
+        scale = 20.0 / max_dim
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+
+        # Ensure dimensions are at least 1x1
+        if new_w == 0: new_w = 1
+        if new_h == 0: new_h = 1
+
+        digit_resized = cv2.resize(digit_crop, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+        # 3. Calculate coordinates to center the 20x20 box in the 28x28 canvas
+        # (4px padding on each side)
+        start_x = (28 - new_w) // 2
+        start_y = (28 - new_h) // 2
+
+        # 4. Paste the resized digit onto the center of the canvas
+        canvas[start_y : start_y + new_h, start_x : start_x + new_w] = digit_resized
+        
+        digits.append(canvas)
+        
     return digits
 
 

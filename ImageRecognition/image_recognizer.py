@@ -18,18 +18,27 @@ class ModelType(Enum):
 class ImageRecognizer:
     """Unified interface for all models."""
 
-    def __init__(self, batch_size=64, model_path=None):
+    def __init__(self, batch_size=64, model_dir=None): # <-- Changed to model_dir
         self.model_type = ModelType.CNN # Default
 
+        # --- START FIX: Construct specific paths for each model ---
+        cnn_path = model_dir / "cnn_model.pth" if model_dir else None
+        mlp_path = model_dir / "mlp_model.pth" if model_dir else None
+        svc_path = model_dir / "svc_model.pkl" if model_dir else None
+        # --- END FIX ---
+
         self.models: dict[ModelType, ModelBase] = {
-            ModelType.CNN: ModelCNN(batch_size=batch_size, model_path=model_path),
-            ModelType.MLP: ModelMLP(batch_size=batch_size, model_path=model_path),
-            ModelType.SVC: ModelSVC(batch_size=batch_size, model_path=model_path)
+            # Pass the correct path to each constructor
+            ModelType.CNN: ModelCNN(batch_size=batch_size, model_path=cnn_path),
+            ModelType.MLP: ModelMLP(batch_size=batch_size, model_path=mlp_path),
+            ModelType.SVC: ModelSVC(batch_size=batch_size, model_path=svc_path)
         }
 
     def train(self):
-        for model in self.models.values():
-            model.train()
+        # Add epochs to SVC train call
+        self.models[ModelType.CNN].train()
+        self.models[ModelType.MLP].train()
+        self.models[ModelType.SVC].train() # SVC train doesn't use epochs, but call is fine
 
     def test(self):
         for model in self.models.values():
@@ -41,4 +50,3 @@ class ImageRecognizer:
 
     def predict(self, model_type, input):
         return self.models[model_type].predict(input)
-

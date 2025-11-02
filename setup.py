@@ -1,5 +1,6 @@
 import setuptools
 from setuptools import setup, find_packages
+import io # <-- Re-added io IMPORT for robustness
 
 # Function to read the requirements from requirements.txt
 def read_requirements():
@@ -18,11 +19,19 @@ def read_requirements():
             # tkinter is usually built-in, but dependencies are listed here
         ]
 
+# Define long description robustly to prevent metadata-generation-failed error
+try:
+    with io.open('README.md', encoding='utf-8') as f:
+        long_description = f.read()
+except FileNotFoundError:
+    long_description = 'A simple GUI application for drawing digits and predicting them using trained models.'
+
+
 setup(
     name='digit-recognition-app',
     version='1.0.0',
     description='A Digit Recognition Application using PyTorch and traditional machine learning methods.',
-    long_description=open('README.md').read() if 'README.md' else 'A simple GUI application for drawing digits and predicting them using trained models.',
+    long_description=long_description, # <-- Now using the robustly read variable
     author='Oliver Moloney',
     author_email='104273068@student.swin.edu.au',
     url='https://github.com/Scrapjon/IntelligentSystems-B',

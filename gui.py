@@ -7,7 +7,6 @@ import threading, asyncio
 import ImageRecognition
 from pathlib import Path
 from ImageRecognition.image_recognizer import ImageRecognizer, ModelType
-from ImageRecognition.segmentation import (segment_contours, segment_connected, segment_projection)
 from ImageRecognition.segmentation import (segment_contours, segment_connected, segment_projection, segment_watershed)
 from ImageRecognition.models import ModelBase
 import torch
@@ -188,7 +187,6 @@ class DigitDrawingApp:
         print(f"""
 Contour: {len(contour_digits)}
 Connected: {len(connected_digits)}
-Projection: {len(projection_digits)}""")
 Projection: {len(projection_digits)})
 Watershed: {len(watershed_digits)}""")
 

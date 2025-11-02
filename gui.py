@@ -66,11 +66,18 @@ class DigitDrawingApp:
         self.edge_label = tk.Label(self.processed_frame, text="Edges")
         self.edge_label.grid(row=0, column=2, padx=5, pady=5)
 
+
+        self.segmentation_options = ["","Projection", "Contour", "Connected","Watershed (Aggressive)"]
+        self.segmentation_stringvar = tk.StringVar(value="Projection")
+        self.segmentation_menu = ttk.OptionMenu(root,self.segmentation_stringvar, *self.segmentation_options)
+        self.segmentation_menu.grid(row=4,column=5)
+
+
         self.model_options = ["", "CNN", "MLP", "SVC"]
         print(*self.model_options)
         self.model_stringvar = tk.StringVar(value="CNN")
-        self.option_menu = ttk.OptionMenu(root, self.model_stringvar, *self.model_options)
-        self.option_menu.grid(row=5, column=5)
+        self.model_menu = ttk.OptionMenu(root, self.model_stringvar, *self.model_options)
+        self.model_menu.grid(row=5, column=5)
         
         
 
@@ -229,7 +236,9 @@ Projection: {len(projection_digits)}""")
             "normalised": normalised_img_np,
             "edges": edges,
             "binary": binary,
-            "contour_digits": contour_digits
+            "Connected": connected_digits,
+            "Projection": projection_digits,
+            "Contour": contour_digits
         }
 
     @property
@@ -255,7 +264,7 @@ Projection: {len(projection_digits)}""")
             drawing = self.process_drawing()
             
             # This now contains correctly centered 28x28 numpy arrays
-            segmented_digits = drawing["contour_digits"]
+            segmented_digits = drawing[self.segmentation_stringvar.get()]
             preds = ""
             
             # Define the same transformations used for MNIST training data

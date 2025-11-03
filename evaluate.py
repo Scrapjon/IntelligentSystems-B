@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from io import StringIO
 from enum import Enum
 import os
+import re
 
 def generate_and_save_report_plots(
     accuracy: float, 
@@ -59,15 +60,45 @@ def generate_and_save_report_plots(
     # Rename the first column, which contains the labels/metrics names
     df.rename(columns={df.columns[0]: 'label'}, inplace=True)
     df.set_index('label', inplace=True)
-    
     # Remove rows that are entirely NaN (often blank lines or headers)
     df.dropna(how='all', inplace=True)
     
+    # Fallback if 'precision' not parsed correctly
+    if 'precision' not in df.columns:
+        rows = []
+        pattern = re.compile(
+            r'^(?P<label>(\d|macro avg|weighted avg|micro avg))\s+'
+            r'(?P<precision>\d\.\d+)\s+'
+            r'(?P<recall>\d\.\d+)\s+'
+            r'(?P<f1_score>\d\.\d+)\s+'
+            r'(?P<support>\d+)$'
+        )
+
+        for line in report_text.splitlines():
+            line = line.strip()
+            m = pattern.match(line)
+            if m:
+                rows.append(m.groupdict())
+
+        if rows:
+            df = pd.DataFrame(rows)
+            df.rename(columns={'f1_score': 'f1-score'}, inplace=True)
+            df.set_index('label', inplace=True)
+            for col in ['precision', 'recall', 'f1-score']:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+            df['support'] = pd.to_numeric(df['support'], errors='coerce')
+        else:
+            print(f" Could not parse classification report for {model_name}")
+            return
+    
+
+
     # 3. Filter the DataFrame for Digit Classes and Aggregate Averages
     try:
         # Filter for the 10 digit classes (indices '0' through '9')
         # We use df.index.str.isdigit() to robustly find the digit rows
-        class_df = df[df.index].copy()
+        df.index = df.index.astype(str)
+        class_df = df[df.index.str.isdigit()].copy()
         
         # Convert metric columns to float, handling potential parsing errors
         for col in ['precision', 'recall', 'f1-score']:
@@ -87,18 +118,19 @@ def generate_and_save_report_plots(
     try:
         weighted_f1 = df.loc['weighted avg', 'f1-score']
     except KeyError:
-        weighted_f1 = accuracy/100 # Fallback if 'weighted avg' row was missed
-        plt.title(f'F1-Score per Digit Class for {model_name}')
-        plt.xlabel('Digit Class')
-        plt.ylabel('F1-Score')
-        plt.ylim(0.85, 1.0) # Set a sensible Y limit for high-accuracy models
-        plt.xticks(rotation=0)
-        plt.grid(axis='y', linestyle='--', alpha=0.7)
-        
-        plot1_path = os.path.join(save_dir, f'{model_name}_f1_per_class.png')
-        plt.savefig(plot1_path)
-        plt.close()
-        print(f"✅ Saved F1-Score per class plot to {plot1_path}")
+        weighted_f1 = accuracy # Fallback if 'weighted avg' row was missed
+
+    plt.title(f'F1-Score per Digit Class for {model_name}')
+    plt.xlabel('Digit Class')
+    plt.ylabel('F1-Score')
+    plt.ylim(0.85, 1.0) # Set a sensible Y limit for high-accuracy models
+    plt.xticks(rotation=0)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    plot1_path = os.path.join(save_dir, f'{model_name}_f1_per_class.png')
+    plt.savefig(plot1_path)
+    plt.close()
+    print(f"✅ Saved F1-Score per class plot to {plot1_path}")
         
         
     # --- Visualization 2: Summary Metrics (Accuracy vs. Weighted F1) ---
@@ -113,7 +145,7 @@ def generate_and_save_report_plots(
         
     summary_data = {
         'Metric': ['Accuracy', 'Weighted F1-Score'],
-        'Value': [accuracy, weighted_f1]
+        'Value': [accuracy / 100.0, weighted_f1]
     }
     summary_df = pd.DataFrame(summary_data)
     
@@ -144,9 +176,7 @@ def generate_accuracy_plot(
     """
     
     model_names = [mt.value.upper() for mt in accuracy_data.keys()] # Changed to .upper() for labels
-    accuracies = list(accuracy_data.values())
-    for i in range(accuracies):
-        accuracies[i] = accuracies[i]/100
+    accuracies = [v / 100.0 for v in accuracy_data.values()]
     
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)

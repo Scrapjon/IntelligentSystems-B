@@ -71,8 +71,8 @@ class DigitDrawingApp:
             self.edge_label.grid(row=0, column=2, padx=5, pady=5)
     
             # Segmentation Options Menu
-            self.segmentation_options = ["", "Projection", "Contour", "Connected", "Watershed (Aggressive)"]
-            self.segmentation_stringvar = tk.StringVar(value="Projection")
+            self.segmentation_options = ["", "Contour","Projection", "Connected", "Watershed (Aggressive)"]
+            self.segmentation_stringvar = tk.StringVar(value="Contour")
             self.segmentation_menu = ttk.OptionMenu(root, self.segmentation_stringvar, *self.segmentation_options)
             self.segmentation_menu.grid(row=5, column=0, pady=10, padx=10)
     
@@ -157,8 +157,6 @@ class DigitDrawingApp:
         # Negative
         #img_np = img_np.max() - img_np
 
-        # Normalise
-        normalised_img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min())
 
         # Binarization
         _, binary = cv2.threshold(img_np, 128, 255, cv2.THRESH_BINARY)
@@ -173,6 +171,9 @@ class DigitDrawingApp:
         edges_tk = ImageTk.PhotoImage(edges_img.resize((100, 100)))
         self.edge_label.config(image=edges_tk)
         self.edge_label.image = edges_tk
+
+        # Normalise
+        N_img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min())
 
         # Helper to display multiple segmented digits beneath a label
         def display_segmented_digits(digit_list, parent_frame, row, label_text):
@@ -207,7 +208,7 @@ class DigitDrawingApp:
                 display_segmented_digits(digits, self.processed_frame, row=3, label_text="Projection")
 
             case "Watershed (Aggressive)":
-                digits = segment_watershed(img_np)
+                digits = segment_watershed(img_np, self.erosion_iterations.get(), self.dilation_iterations.get())
                 display_segmented_digits(digits, self.processed_frame, row=4, label_text="Watershed")
             case _:
                 print("Invalid option selected!")
@@ -235,7 +236,6 @@ class DigitDrawingApp:
         return {
             "grey": gray,
             "img": img_np,
-            "normalised": normalised_img_np,
             "edges": edges,
             "binary": binary,
             "digits": digits
@@ -265,6 +265,16 @@ class DigitDrawingApp:
             
             # This now contains correctly centered 28x28 numpy arrays
             segmented_digits = drawing["digits"]
+            """
+            # DEBUG
+            import matplotlib.pyplot as plt
+            for i,digit in enumerate(segmented_digits):
+                plt.imsave(f"Input Digit {i}.png",digit)
+            
+                print("colours:",digit[0:5, 0:5])
+
+            """
+                
             preds = ""
             
             # Define the same transformations used for MNIST training data
@@ -290,6 +300,8 @@ class DigitDrawingApp:
                     # This scales to [0,1], normalizes, and sets shape to [1, 28, 28] (C, H, W)
                     n_tensor = mnist_transform(pil_image)
 
+
+
                     # 3. Add the batch dimension (B, C, H, W)
                     # Models expect a batch, so we unsqueeze at dim 0
                     n_tensor = n_tensor.unsqueeze(0).to(model.device)
@@ -309,8 +321,11 @@ class DigitDrawingApp:
 
     def run_tests(self):
         for model_type in self.image_rec.models.keys():
-            model: ModelBase = self.image_rec.models[model_type]
-            yield model.test(), model_type
+            try:
+                model: ModelBase = self.image_rec.models[model_type]
+                yield model.test(), model_type
+            except Exception as e:
+                yield e, model_type
         
 
 def start_app() -> tuple[DigitDrawingApp, threading.Thread]:
@@ -319,7 +334,6 @@ def start_app() -> tuple[DigitDrawingApp, threading.Thread]:
     #app.image_rec.evaluate()
     main_loop = threading.Thread(target=root.mainloop)
     return app, main_loop
-    
     
 
 if __name__ == "__main__":

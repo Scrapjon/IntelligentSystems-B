@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -123,6 +124,8 @@ class ModelCNN(ModelBase):
         for i in range(epochs):
             print("CNN Training: EPOCH:",i)
             for batch, (X, y) in enumerate(self.train_dataloader):
+                import matplotlib.pyplot as plt
+                plt.imsave("test_image.png", X)
                 X, y = X.to(self.device), y.to(self.device)
                 pred = self.model(X)
                 loss = self.loss_fn(pred, y)
@@ -145,6 +148,9 @@ class ModelCNN(ModelBase):
         accuracy = 100 * correct / len(self.test_data)
         print(f"Test Accuracy: {accuracy:.2f}%, Avg loss: {test_loss:.4f}")
         return accuracy
+    
+    def set_eval(self):
+        self.model.eval()
 
     def save_model(self):
         save_path = Path(MODEL_FOLDER, "cnn_model.pth")
@@ -154,7 +160,10 @@ class ModelCNN(ModelBase):
     def predict(self, input):
         self.model.eval()
         with torch.no_grad():
+            
             input = input.to(self.device)
+            if input.dim() == 3:
+                input = input.unsqueeze(0)
             pred = self.model(input)
             return pred.argmax(1).item()
 
@@ -184,6 +193,9 @@ class ModelSVC(ModelBase):
         acc = accuracy_score(self.y_test, preds)
         print(f"SVC Test Accuracy: {acc*100:.2f}%")
         return acc
+    
+    def set_eval(self):
+        pass
 
     def save_model(self):
         import joblib
@@ -242,6 +254,9 @@ class ModelMLP(ModelBase):
         accuracy = 100 * correct / len(self.test_data)
         print(f"MLP Test Accuracy: {accuracy:.2f}%, Avg loss: {test_loss:.4f}")
         return accuracy
+    
+    def set_eval(self):
+        self.model.eval()
 
     def save_model(self):
         save_path = Path(MODEL_FOLDER, "mlp_model.pth")
@@ -252,9 +267,51 @@ class ModelMLP(ModelBase):
         self.model.eval()
         with torch.no_grad():
             input = input.to(self.device)
+            if input.dim() == 3:
+                input = input.unsqueeze(0)
             pred = self.model(input)
             return pred.argmax(1).item()
 
+def evaluate_models(models: dict[str, ModelBase]):
+    from sklearn.metrics import f1_score, classification_report
+    for model_name in models.keys():
+        if model_name.lower() != "svc":
+            model = models[model_name]
+            model.set_eval()
+            with torch.no_grad(): # Disable gradient calculation for efficiency
+                for X, y in model.test_dataloader:
+                    X = X.to(model.device)
+
+                    # 1. Forward Pass
+                    outputs = model.predict(X)
+
+                    # 2. Get Predicted Class Index (the argmax across the 10 classes)
+                    #    Outputs are (BatchSize, 10). argmax(1) gives the predicted index.
+                    predictions = outputs
+
+                    # 3. Collect Results
+                    y_true.extend(y.cpu().numpy())
+                    y_pred.extend(predictions.cpu().numpy())
+
+                    # Convert lists to NumPy arrays
+                    y_true = np.array(y_true)
+                    y_pred = np.array(y_pred)       
+        else:
+
+            # --- Scikit-learn SVC Model ---
+            
+            # The SVC data must be accessed through the model object (ModelSVC instance)
+            
+            # 1. True Labels are available directly
+            y_true = model.y_test 
+
+            # 2. Generate Predicted Labels using the SVC's predict method
+            y_pred = model.model.predict(model.X_test)
+
+        f1_weighted = f1_score(y_true, y_pred, average='weighted')
+        
+        report = classification_report(y_true, y_pred, target_names=[str(i) for i in range(10)])
+        yield f"{model_name.capitalize()} EVALUATION:\n" + f"Weighted F1-Score: {f1_weighted:.4f}\n" + f"Classification Report:\n{report}\n" 
 
 # ======================
 # TESTING
@@ -293,15 +350,15 @@ if __name__ == "__main__":
     threads.append(Thread(target=create_mlp))
     threads.append(Thread(target=create_svc))
     
-    #cnn = ModelCNN()
-    #cnn.train()
-    #cnn.test()
+    cnn = ModelCNN()
+    cnn.train()
+    cnn.test()
     #
-    #mlp = ModelMLP()
-    #mlp.train()
-    #mlp.test()
+    mlp = ModelMLP()
+    mlp.train()
+    mlp.test()
 
-    svc = ModelSVC()
-    svc.train()
-    svc.test()
+    #svc = ModelSVC()
+    #svc.train()
+    #svc.test()
 

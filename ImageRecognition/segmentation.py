@@ -33,7 +33,7 @@ def segment_contours(img_np):
 
         # 2. Resize the cropped digit to fit within a 20x20 box, maintaining aspect ratio
         max_dim = max(w, h)
-        scale = 20.0 / max_dim
+        scale = 28.0 / max_dim
         new_w = int(w * scale)
         new_h = int(h * scale)
 

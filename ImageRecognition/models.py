@@ -6,7 +6,9 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, Compose, Normalize
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score, classification_report
+import joblib
+import matplotlib.pyplot as plt
 from pathlib import Path
 from os import makedirs
 from enum import Enum
@@ -124,7 +126,7 @@ class ModelCNN(ModelBase):
         for i in range(epochs):
             print("CNN Training: EPOCH:",i)
             for batch, (X, y) in enumerate(self.train_dataloader):
-                import matplotlib.pyplot as plt
+                
                 plt.imsave("test_image.png", X)
                 X, y = X.to(self.device), y.to(self.device)
                 pred = self.model(X)
@@ -174,13 +176,21 @@ class ModelCNN(ModelBase):
 
 class ModelSVC(ModelBase):
     def __initialize_model__(self, model_path=None):
+        
+        makedirs(MODEL_FOLDER, exist_ok=True)
         print("Preparing data for SVC...")
         self.X_train = self.training_data.data.numpy().reshape(len(self.training_data), -1)
         self.y_train = self.training_data.targets.numpy()
         self.X_test = self.test_data.data.numpy().reshape(len(self.test_data), -1)
         self.y_test = self.test_data.targets.numpy()
-
-        self.model = SVC(kernel="rbf", C=1.0, gamma="scale")
+        
+        
+        if model_path and Path(model_path).exists():
+            print(f"Loading SVC model from {model_path}")
+            self.model = joblib.load(Path(model_path))
+        else:
+            self.model: SVC = SVC(kernel="rbf", C=1.0, gamma="scale")
+        
         print("SVC initialized.")
 
     def train(self):
@@ -192,7 +202,7 @@ class ModelSVC(ModelBase):
         preds = self.model.predict(self.X_test)
         acc = accuracy_score(self.y_test, preds)
         print(f"SVC Test Accuracy: {acc*100:.2f}%")
-        return acc
+        return acc*100
     
     def set_eval(self):
         pass
@@ -273,45 +283,56 @@ class ModelMLP(ModelBase):
             return pred.argmax(1).item()
 
 def evaluate_models(models: dict[str, ModelBase]):
-    from sklearn.metrics import f1_score, classification_report
+    target_names = [str(i) for i in range(10)]
+
     for model_name in models.keys():
+        model = models[model_name]
+        
+        # --- FIX 1: Initialize results for the current model ---
+        y_true_list = []
+        y_pred_list = []
+
         if model_name.lower() != "svc":
-            model = models[model_name]
-            model.set_eval()
-            with torch.no_grad(): # Disable gradient calculation for efficiency
+            # --- PyTorch Models (CNN/MLP) ---
+            
+            # Note: set_eval() is assumed to call self.model.eval()
+            model.set_eval() 
+            device = model.device
+            
+            with torch.no_grad():
                 for X, y in model.test_dataloader:
-                    X = X.to(model.device)
+                    X = X.to(device)
 
-                    # 1. Forward Pass
-                    outputs = model.predict(X)
-
-                    # 2. Get Predicted Class Index (the argmax across the 10 classes)
-                    #    Outputs are (BatchSize, 10). argmax(1) gives the predicted index.
-                    predictions = outputs
-
+                    # --- FIX 2: Direct batch forward pass and argmax ---
+                    # We avoid calling the single-sample model.predict(X)
+                    outputs = model.model(X) # Use model.model() for the forward pass
+                    predictions = outputs.argmax(1)
+                    
                     # 3. Collect Results
-                    y_true.extend(y.cpu().numpy())
-                    y_pred.extend(predictions.cpu().numpy())
+                    y_true_list.extend(y.cpu().numpy())
+                    y_pred_list.extend(predictions.cpu().numpy())
 
-                    # Convert lists to NumPy arrays
-                    y_true = np.array(y_true)
-                    y_pred = np.array(y_pred)       
+            # Convert collected lists to NumPy arrays for scikit-learn
+            y_true = np.array(y_true_list)
+            y_pred = np.array(y_pred_list)
+            
         else:
-
             # --- Scikit-learn SVC Model ---
-            
-            # The SVC data must be accessed through the model object (ModelSVC instance)
-            
             # 1. True Labels are available directly
             y_true = model.y_test 
 
             # 2. Generate Predicted Labels using the SVC's predict method
             y_pred = model.model.predict(model.X_test)
-
+        
+        # --- Evaluation ---
         f1_weighted = f1_score(y_true, y_pred, average='weighted')
         
-        report = classification_report(y_true, y_pred, target_names=[str(i) for i in range(10)])
-        yield f"{model_name.capitalize()} EVALUATION:\n" + f"Weighted F1-Score: {f1_weighted:.4f}\n" + f"Classification Report:\n{report}\n" 
+        report = classification_report(y_true, y_pred, target_names=target_names)
+        
+        # Use yield to return results (as per your function signature)
+        yield f"{model_name.upper()} EVALUATION:\n" + \
+              f"Weighted F1-Score: {f1_weighted:.4f}\n" + \
+              f"Classification Report:\n{report}\n", model_name, report
 
 # ======================
 # TESTING
@@ -358,7 +379,7 @@ if __name__ == "__main__":
     mlp.train()
     mlp.test()
 
-    #svc = ModelSVC()
-    #svc.train()
-    #svc.test()
+    svc = ModelSVC()
+    svc.train()
+    svc.test()
 

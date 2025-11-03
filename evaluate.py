@@ -67,7 +67,7 @@ def generate_and_save_report_plots(
     try:
         # Filter for the 10 digit classes (indices '0' through '9')
         # We use df.index.str.isdigit() to robustly find the digit rows
-        class_df = df[df.index.str.isdigit()].copy()
+        class_df = df[df.index].copy()
         
         # Convert metric columns to float, handling potential parsing errors
         for col in ['precision', 'recall', 'f1-score']:
@@ -82,18 +82,12 @@ def generate_and_save_report_plots(
     if class_df.empty:
         print(f"Error: Parsed class data is empty. Cannot plot for {model_name}.")
         return
-    
-    # --- Rest of the plotting logic remains the same ---
-    # ...
     plt.figure(figsize=(10, 6))
     class_df['f1-score'].plot(kind='bar', color='skyblue') 
-    # ... (rest of the plot 1 code)
-    # ...
-    # For the summary metrics, retrieve the weighted average:
     try:
         weighted_f1 = df.loc['weighted avg', 'f1-score']
     except KeyError:
-        weighted_f1 = accuracy # Fallback if 'weighted avg' row was missed
+        weighted_f1 = accuracy/100 # Fallback if 'weighted avg' row was missed
         plt.title(f'F1-Score per Digit Class for {model_name}')
         plt.xlabel('Digit Class')
         plt.ylabel('F1-Score')
@@ -132,7 +126,7 @@ def generate_and_save_report_plots(
     plot2_path = os.path.join(save_dir, f'{model_name}_summary_metrics.png')
     plt.savefig(plot2_path)
     plt.close()
-    print(f"✅ Saved summary metrics plot to {plot2_path}")
+    print(f"Saved summary metrics plot to {plot2_path}")
 
 
 def generate_accuracy_plot(
@@ -151,6 +145,8 @@ def generate_accuracy_plot(
     
     model_names = [mt.value.upper() for mt in accuracy_data.keys()] # Changed to .upper() for labels
     accuracies = list(accuracy_data.values())
+    for i in range(accuracies):
+        accuracies[i] = accuracies[i]/100
     
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -189,7 +185,7 @@ def generate_accuracy_plot(
     plot_path = os.path.join(save_dir, 'overall_model_accuracy_comparison.png')
     plt.savefig(plot_path)
     plt.close()
-    print(f"✅ Saved accuracy comparison plot to {plot_path}")
+    print(f"Saved accuracy comparison plot to {plot_path}")
 
 
 app, app_thread = start_app()
@@ -217,13 +213,10 @@ try:
                 "mlp": ModelType.MLP,
                 "svc": ModelType.SVC
             }
+            df = pd.DataFrame(report)
+            df.to_csv(f"reports/{model_type}_classification_report.csv")
             accuracy = accuracy_map[key_match[model_type.lower()]]
             model_key = key_match[model_type.lower()]
-            try:
-                generate_and_save_report_plots(accuracy, model_key, report)
-            except:
-                print("failed to generate report plots")
-            generate_accuracy_plot(accuracy_map)
         f.write(results)
 except Exception as e:
         print(e)

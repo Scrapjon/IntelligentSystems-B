@@ -327,7 +327,7 @@ def evaluate_models(models: dict[str, ModelBase]):
         # --- Evaluation ---
         f1_weighted = f1_score(y_true, y_pred, average='weighted')
         
-        report = classification_report(y_true, y_pred, target_names=target_names)
+        report = classification_report(y_true, y_pred, target_names=target_names, output_dict=True)
         
         # Use yield to return results (as per your function signature)
         yield f"{model_name.upper()} EVALUATION:\n" + \
